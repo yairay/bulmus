@@ -1,8 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-
-import { toast } from "@/components/hooks/use-toast"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -13,6 +9,14 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { toast } from "@/components/hooks/use-toast"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import axios from "axios"
+
+const BackendAxios = axios.create({
+  baseURL: "http://localhost:8000",
+})
 
 const FormSchema = z.object({
   fullName: z.string().min(2, {
@@ -33,8 +37,9 @@ const FormSchema = z.object({
 })
 
 export function InputForm() {
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const form = useForm({
     defaultValues: {
       fullName: "",
       email: "",
@@ -44,28 +49,27 @@ export function InputForm() {
     },
   })
 
-  // Get all field names for checking errors
-  const fieldNames = ['fullName', 'email', 'company', 'country', 'phone'] as const
-
-  // Find the first field with an error
-  const firstErrorField = fieldNames.find(
-    fieldName => form.formState.errors[fieldName]
-  )
-
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast({
-      title: "You submitted the following values:",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    })
-  }
-
-  // Helper function to determine if error should be shown for a field
-  const shouldShowError = (fieldName: string) => {
-    return firstErrorField === fieldName
+  const onSubmit = async (data) => {
+    try {
+      setIsSubmitting(true)
+      await BackendAxios.post('/test', data)
+      toast({
+        title: "Form submitted successfully!",
+        description: (
+          <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+            <code className="text-white">{JSON.stringify(data, null, 2)}</code>
+          </pre>
+        ),
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit form. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -73,18 +77,20 @@ export function InputForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
         <div className="flex-grow space-y-4">
           <FormField
-            name="username"
+            control={form.control}
+            name="fullName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Full Name</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                {shouldShowError('username') && <FormMessage />}
+                <FormMessage />
               </FormItem>
             )}
           />
           <FormField
+            control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
@@ -92,11 +98,12 @@ export function InputForm() {
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                {shouldShowError('email') && <FormMessage />}
+                <FormMessage />
               </FormItem>
             )}
           />
           <FormField
+            control={form.control}
             name="company"
             render={({ field }) => (
               <FormItem>
@@ -104,11 +111,12 @@ export function InputForm() {
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                {shouldShowError('company') && <FormMessage />}
+                <FormMessage />
               </FormItem>
             )}
           />
           <FormField
+            control={form.control}
             name="country"
             render={({ field }) => (
               <FormItem>
@@ -116,11 +124,12 @@ export function InputForm() {
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                {shouldShowError('country') && <FormMessage />}
+                <FormMessage />
               </FormItem>
             )}
           />
           <FormField
+            control={form.control}
             name="phone"
             render={({ field }) => (
               <FormItem>
@@ -128,19 +137,24 @@ export function InputForm() {
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                {shouldShowError('phone') && <FormMessage />}
+                <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
-        <Button type="submit" className="w-full rounded-xl mt-8" variant={'default'}>
-          Submit
+        <Button 
+          type="submit" 
+          className="w-full rounded-xl mt-8" 
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Submit"}
         </Button>
       </form>
     </Form>
   )
 }
+
 
 function App() {
   return (
